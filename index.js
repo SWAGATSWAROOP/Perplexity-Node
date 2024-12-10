@@ -19,7 +19,7 @@ app.post("/v2/serper", async (req, res) => {
         "X-API-KEY": process.env.SERP_API_PERPLEXITY,
         "Content-Type": "application/json",
       },
-      data: JSON.stringify({ q: message, num: "30" }),
+      data: JSON.stringify({ q: message, num: "10" }),
     };
 
     const serpResponse = await axios(serpApiConfig);
@@ -70,8 +70,7 @@ app.post("/v2/serper", async (req, res) => {
       .filter(
         (result) => result.status === "fulfilled" && result.value.searchResults
       )
-      .map((result) => result.value)
-      .slice(20, 30);
+      .map((result) => result.value);
 
     // Step 6: Prepare messages for summarization
     // const summarizedMap = [
