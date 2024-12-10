@@ -19,7 +19,7 @@ app.post("/v2/serper", async (req, res) => {
         "X-API-KEY": process.env.SERP_API_PERPLEXITY,
         "Content-Type": "application/json",
       },
-      data: JSON.stringify({ q: message, num: "10" }),
+      data: JSON.stringify({ q: message, num: "50" }),
     };
 
     const serpResponse = await axios(serpApiConfig);
@@ -47,7 +47,7 @@ app.post("/v2/serper", async (req, res) => {
           .replace(/[^\w\s.,!?-]/g, " ")
           .trim()
           .split(/\s+/)
-          .slice(0, 3000)
+          .slice(0, 300)
           .join(" ");
 
         return { content, link };
