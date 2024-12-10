@@ -70,8 +70,7 @@ app.post("/v2/serper", async (req, res) => {
       .filter(
         (result) => result.status === "fulfilled" && result.value.searchResults
       )
-      .map((result) => result.value)
-      .slice(0, 5);
+      .map((result) => result.value);
 
     // Step 6: Prepare messages for summarization
     // const summarizedMap = [
