@@ -47,7 +47,7 @@ app.post("/v2/serper", async (req, res) => {
           .replace(/[^\w\s.,!?-]/g, " ")
           .trim()
           .split(/\s+/)
-          .slice(0, 300)
+          .slice(0, 100)
           .join(" ");
 
         return { content, link };
