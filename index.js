@@ -105,6 +105,70 @@ app.post("/v2/serper", async (req, res) => {
   }
 });
 
+async function genImage(prompt, authorization) {
+  const model = "dall-e-3";
+  const n = 1;
+  const size = "1024x1024";
+  const response = await axios.post(
+    "https://api.openai.com/v1/images/generations",
+    { model, prompt, n, size },
+    {
+      headers: {
+        Authorization: `Bearer ${authorization}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  return response.data;
+}
+
+async function validateImageUrl(url) {
+  try {
+    const response = await axios.head(url);
+    return response.status === 200;
+  } catch (error) {
+    return false;
+  }
+}
+
+app.post("/generate-image", async (req, res) => {
+  const { prompt, authorization } = req.body;
+
+  if (!prompt) {
+    return res.status(400).json({ error: "Prompt is required" });
+  }
+
+  if (!authorization) {
+    return res.status(401).json({ error: "Authorization is required" });
+  }
+
+  try {
+    let isValid = false;
+    let images;
+
+    while (!isValid) {
+      const response = await genImage(prompt, authorization);
+      const imageData = response.data[0];
+      const imageUrl = imageData.url;
+
+      isValid = await validateImageUrl(imageUrl);
+
+      if (isValid) {
+        images = response; // Store valid image response
+      }
+    }
+
+    res.status(200).json({ images });
+  } catch (error) {
+    if (error.response) {
+      res.status(error.response.status).json(error.response.data);
+    } else {
+      res.status(500).json({ error: "Unexpected error occurred" });
+    }
+  }
+});
+
 app.listen(3000, () => {
   console.log("Server is listening on port 3000");
 });
