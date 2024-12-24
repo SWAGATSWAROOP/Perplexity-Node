@@ -26,11 +26,35 @@ app.post("/v2/serper", async (req, res) => {
     const { images } = serpResponse.data;
 
     // Step 2: Parse sources
-    const sourcesParsed = images.map((item) => ({
-      title: item.title || "No Title",
-      link: item.link || "",
-      image: item.imageUrl || "",
-    }));
+    const parseSources = async (images) => {
+      const validateImageLink = async (url) => {
+        try {
+          // Make a HEAD request to check if the URL is accessible
+          const response = await axios.head(url);
+          return response.status === 200;
+        } catch (error) {
+          return false;
+        }
+      };
+
+      const sourcesParsed = await Promise.all(
+        images.map(async (item) => {
+          const isAccessible = await validateImageLink(item.imageUrl || "");
+          return isAccessible
+            ? {
+                title: item.title || "No Title",
+                link: item.link || "",
+                image: item.imageUrl || "",
+              }
+            : null; // Exclude inaccessible links
+        })
+      );
+
+      // Filter out null values
+      return sourcesParsed.filter((source) => source !== null);
+    };
+
+    const sourcesParsed = await parseSources(images);
 
     // Step 3: Fetch page content
     const fetchPageContent = async (link) => {
