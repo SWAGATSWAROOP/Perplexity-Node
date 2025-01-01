@@ -290,7 +290,9 @@ app.get("/user/tweets", async (req, res) => {
       },
       params: { username, limit, include_pinned },
     });
-    res.json(response.data);
+    const array = response.data.results;
+    const ans = array.map((result) => ({ text: result.text }));
+    res.json(ans);
   } catch (error) {
     console.error(error.message);
     res.status(500).json({ error: "Failed to fetch user tweets." });
