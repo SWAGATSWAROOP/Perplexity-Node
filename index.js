@@ -193,6 +193,50 @@ app.post("/generate-image", async (req, res) => {
   }
 });
 
+const BASE_URL = "https://twitter154.p.rapidapi.com";
+
+// Endpoint: /search/search
+app.get("/search/search", async (req, res) => {
+  const {
+    query,
+    section = "latest",
+    language = "en",
+    limit = 10,
+    min_likes = 0,
+    min_retweets = 0,
+  } = req.query;
+
+  if (!query) {
+    return res.status(400).json({ error: "Search query is required." });
+  }
+
+  try {
+    const { "x-rapidapi-host": host, "x-rapidapi-key": key } = req.headers;
+
+    if (!host || !key) {
+      return res.status(400).json({
+        error:
+          "Required headers 'X-RapidAPI-Host' and 'X-RapidAPI-Key' are missing.",
+      });
+    }
+
+    const response = await axios.get(`${BASE_URL}/search/search`, {
+      headers: {
+        "X-RapidAPI-Host": host,
+        "X-RapidAPI-Key": key,
+      },
+      params: { query, section, language, limit, min_likes, min_retweets },
+    });
+    console.log(response.data);
+    const array = response.data.results;
+    const ans = array.map((result) => ({ text: result.text }));
+    res.json(ans);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ error: "Failed to fetch tweets." });
+  }
+});
+
 app.listen(3000, () => {
   console.log("Server is listening on port 3000");
 });
