@@ -237,6 +237,66 @@ app.get("/search/search", async (req, res) => {
   }
 });
 
+app.get("/user/details", async (req, res) => {
+  const { username } = req.query;
+
+  if (!username) {
+    return res.status(400).json({ error: "Username is required." });
+  }
+
+  try {
+    const { "x-rapidapi-host": host, "x-rapidapi-key": key } = req.headers;
+
+    if (!host || !key) {
+      return res.status(400).json({
+        error:
+          "Required headers 'X-RapidAPI-Host' and 'X-RapidAPI-Key' are missing.",
+      });
+    }
+    const response = await axios.get(`${BASE_URL}/user/details`, {
+      headers: {
+        "X-RapidAPI-Host": host,
+        "X-RapidAPI-Key": key,
+      },
+      params: { username },
+    });
+    res.json(response.data);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ error: "Failed to fetch user details." });
+  }
+});
+
+app.get("/user/tweets", async (req, res) => {
+  const { username, limit = 10, include_pinned = false } = req.query;
+
+  if (!username) {
+    return res.status(400).json({ error: "Username is required." });
+  }
+
+  try {
+    const { "x-rapidapi-host": host, "x-rapidapi-key": key } = req.headers;
+
+    if (!host || !key) {
+      return res.status(400).json({
+        error:
+          "Required headers 'X-RapidAPI-Host' and 'X-RapidAPI-Key' are missing.",
+      });
+    }
+    const response = await axios.get(`${BASE_URL}/user/tweets`, {
+      headers: {
+        "X-RapidAPI-Host": host,
+        "X-RapidAPI-Key": key,
+      },
+      params: { username, limit, include_pinned },
+    });
+    res.json(response.data);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ error: "Failed to fetch user tweets." });
+  }
+});
+
 app.listen(3000, () => {
   console.log("Server is listening on port 3000");
 });
