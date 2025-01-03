@@ -195,14 +195,6 @@ app.post("/generate-image", async (req, res) => {
 
 const BASE_URL = "https://twitter154.p.rapidapi.com";
 
-function getRandomNumber(min, max) {
-  return Math.random() * (max - min) + min;
-}
-
-async function wait(delay) {
-  setTimeout(() => console.log("Delay"), delay);
-}
-
 // Endpoint: /search/search
 app.get("/search/search", async (req, res) => {
   const {
@@ -213,9 +205,6 @@ app.get("/search/search", async (req, res) => {
     min_likes = 0,
     min_retweets = 0,
   } = req.query;
-
-  const time = getRandomNumber(500, 4000);
-  await wait(time);
 
   if (!query) {
     return res.status(400).json({ error: "Search query is required." });
@@ -251,9 +240,6 @@ app.get("/search/search", async (req, res) => {
 app.get("/user/details", async (req, res) => {
   const { username } = req.query;
 
-  const time = getRandomNumber(500, 4000);
-  await wait(time);
-
   if (!username) {
     return res.status(400).json({ error: "Username is required." });
   }
@@ -283,9 +269,6 @@ app.get("/user/details", async (req, res) => {
 
 app.get("/user/tweets", async (req, res) => {
   const { username, limit = 10, include_pinned = false } = req.query;
-
-  const time = getRandomNumber(500, 4000);
-  await wait(time);
 
   if (!username) {
     return res.status(400).json({ error: "Username is required." });
