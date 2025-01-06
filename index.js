@@ -174,7 +174,7 @@ app.post("/generate-image", async (req, res) => {
     while (!isValid) {
       const response = await genImage(prompt, authorization);
       const imageData = response.data[0];
-      const imageUrl = imageData.url;
+      const imageUrl = imageData.url.replace(/\\u0026/g, "&");
 
       isValid = await validateImageUrl(imageUrl);
 
