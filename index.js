@@ -168,22 +168,11 @@ app.post("/generate-image", async (req, res) => {
   }
 
   try {
-    let isValid = false;
-    let images;
+    const response = await genImage(prompt, authorization);
+    const imageData = response.data[0];
+    const imageUrl = imageData.url.replace(/\\u0026/g, "&");
 
-    while (!isValid) {
-      const response = await genImage(prompt, authorization);
-      const imageData = response.data[0];
-      const imageUrl = imageData.url.replace(/\\u0026/g, "&");
-
-      isValid = await validateImageUrl(imageUrl);
-
-      if (isValid) {
-        images = response; // Store valid image response
-      }
-    }
-
-    res.status(200).json({ images });
+    res.status(200).json({ images: imageUrl });
   } catch (error) {
     if (error.response) {
       res.status(error.response.status).json(error.response.data);
