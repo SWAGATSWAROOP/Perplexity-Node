@@ -190,7 +190,7 @@ app.get("/search/search", async (req, res) => {
     query,
     section = "latest",
     language = "en",
-    limit = 10,
+    limit = 25,
     min_likes = 0,
     min_retweets = 0,
   } = req.query;
@@ -257,7 +257,7 @@ app.get("/user/details", async (req, res) => {
 });
 
 app.get("/user/tweets", async (req, res) => {
-  const { username, limit = 10, include_pinned = false } = req.query;
+  const { username, limit = 25, include_pinned = false } = req.query;
 
   if (!username) {
     return res.status(400).json({ error: "Username is required." });
