@@ -4,6 +4,7 @@ dotenv.config();
 const cheerio = require("cheerio");
 const axios = require("axios");
 const app = express();
+const qs = require("qs");
 
 app.use(express.json());
 
@@ -286,6 +287,78 @@ app.get("/user/tweets", async (req, res) => {
     console.error(error.message);
     res.status(500).json({ error: "Failed to fetch user tweets." });
   }
+});
+
+// Step 2: Handle callback and exchange code for access token
+app.get("/callback", async (req, res) => {
+  const CLIENT_SECRET = process.env.LINK_CLIENT_SECRET;
+  const REDIRECT_URI = process.env.LINK_REDIRECT_URI;
+  const CLIENT_ID = process.env.LINK_CLIENT_ID;
+  const authorizationCode = req.query.code;
+  console.log("authorizationCode: ", authorizationCode);
+
+  if (!authorizationCode) {
+    return res.status(400).send("Authorization code not found");
+  }
+
+  console.log("Redirect URI: ", decodeURIComponent(REDIRECT_URI));
+
+  const maxRetries = 15; // Maximum retry attempts
+  const baseDelay = 500; // Base delay in milliseconds for exponential backoff
+  let attempt = 0;
+
+  while (attempt < maxRetries) {
+    try {
+      // Attempt to exchange authorization code for access token
+      const tokenResponse = await axios.post(
+        "https://www.linkedin.com/oauth/v2/accessToken",
+        qs.stringify({
+          grant_type: "authorization_code",
+          code: authorizationCode,
+          redirect_uri: decodeURIComponent(REDIRECT_URI),
+          client_id: CLIENT_ID,
+          client_secret: CLIENT_SECRET,
+        }),
+        {
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+        }
+      );
+
+      const accessToken = tokenResponse.data.access_token;
+      console.log("Access token:", accessToken);
+
+      // Send the access token to the client
+      return res.json({ accessToken });
+    } catch (error) {
+      attempt++;
+
+      // Log error details
+      console.error(`Attempt ${attempt} failed:`, error.message);
+
+      // Check if the error is retryable
+      if (error.response && error.response.status === 429) {
+        console.warn("Rate limit reached, retrying...");
+      } else if (!error.response) {
+        console.warn("Network error, retrying...");
+      } else {
+        console.error(
+          "Non-retryable error:",
+          error.response?.data || error.message
+        );
+        break; // Exit loop for non-retryable errors
+      }
+
+      // Wait before the next attempt
+      const delay = baseDelay * 2 ** (attempt - 1); // Exponential backoff
+      console.log(`Retrying in ${delay}ms...`);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+
+  // If all attempts fail, respond with an error
+  res.status(500).send("Failed to obtain access token after multiple attempts");
 });
 
 app.listen(3000, () => {
