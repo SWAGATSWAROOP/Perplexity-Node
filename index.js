@@ -361,6 +361,66 @@ app.get("/callback", async (req, res) => {
   res.status(500).send("Failed to obtain access token after multiple attempts");
 });
 
+const sgMail = require("@sendgrid/mail");
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
+app.post("/send-email", async (req, res) => {
+  console.log(req.body);
+  const { to, subject, text } = req.body;
+
+  if (!to || !subject || !text) {
+    return res
+      .status(400)
+      .send({ error: "Missing required fields: to, subject, text" });
+  }
+
+  try {
+    const emails = to.split(",").map((email) => email.trim());
+
+    const emailTemplate = (content) => `
+      <html>
+      <body>
+        <div style="text-align: center;">
+          <img src="https://ci3.googleusercontent.com/meips/ADKq_NZZwrETAW64SJnSb_Mh-ILdbu_g2lYz1iKDn-Vt79K-nnZ70R9U43AzoL0RmQ2nwAE9KzehyLpXTbkQu9c7LXBAastc3AWGeBGegCIVrXIj4AIs7ZX3u_lEJcruXsYvW4wmZrS0ScpTUTKUNLNInXO_=s0-d-e1-ft#https://bruy2.img.a.d.sendibm1.com/im/sh/GilWH-kN7GhR.png?u=7xwQLFBtniwQn1M8MygQlvy3YBBwTTy" alt="Banner" style="max-width: 100%; height: auto;">
+        </div>
+        <div style="padding: 20px; font-family: Arial, sans-serif; font-size: 16px;">
+          ${content}
+        </div>
+        <div style="background-color: #000000; padding: 20px; color: #fdfcff; text-align: center; font-family: Montserrat, Arial; font-size: 14px;">
+          <strong>AIREV - OnDemand</strong><br>
+          1301-1302, Al Shatha Tower, Dubai Internet City, Dubai, United Arab Emirates<br>
+         <p>You've received this email because you've subscribed to our newsletter.</p>
+          <p><a href="https://bruy2.r.a.d.sendibm1.com/mk/un/sh/SMJz09a0vkbXq4etnoibeVBr8LtW/30WapXesmVLl" style="color: #fdfcff; text-decoration: underline;">Unsubscribe</a></p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    await Promise.all(
+      emails.map((email) => {
+        const msg = {
+          to: email,
+          from: "on-demand <info@on-demand.io>",
+          subject: subject,
+          text: text,
+          html: emailTemplate(text),
+        };
+        return sgMail.send(msg);
+      })
+    );
+
+    return res.status(200).json({
+      message: `Email has been sent successfully to the provided ${to}`,
+    });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: "Error sending email",
+      error: error.message,
+    });
+  }
+});
+
 app.listen(3000, () => {
   console.log("Server is listening on port 3000");
 });
