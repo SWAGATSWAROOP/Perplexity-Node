@@ -421,6 +421,34 @@ app.post("/send-email", async (req, res) => {
   }
 });
 
+app.get("/getkeywordanalysis", async (req, res) => {
+  try {
+    let { keyword } = req.query;
+    console.log(keyword);
+
+    keyword = encodeURIComponent(keyword);
+
+    console.log("After url encoded ", keyword);
+
+    let config = {
+      method: "get",
+      maxBodyLength: Infinity,
+      url: `https://semrush-keyword-magic-tool.p.rapidapi.com/global-volume?keyword=${keyword}`,
+      headers: {
+        "x-rapidapi-host": "semrush-keyword-magic-tool.p.rapidapi.com",
+        "x-rapidapi-key": process.env.KEYWORD_SEARCH,
+      },
+    };
+
+    const response = await axios.request(config);
+    const data = response.data["Global Keyword Data"][0];
+    return res.status(200).json(data);
+  } catch (error) {
+    console.log("Error ", error);
+    return res.status(500).json({ data: "Some went wrong" });
+  }
+});
+
 app.listen(3000, () => {
   console.log("Server is listening on port 3000");
 });
