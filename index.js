@@ -10,6 +10,7 @@ app.use(express.json());
 
 app.post("/v2/serper", async (req, res) => {
   const { message } = req.body;
+  console.log("Got message: ", message);
 
   try {
     // Step 1: Fetch search results
@@ -24,14 +25,30 @@ app.post("/v2/serper", async (req, res) => {
     };
 
     const serpResponse = await axios(serpApiConfig);
+    console.log("Got Serper Responses: ");
+
+    // return res.status(300).json(serpResponse.data);
+
+    // await new Promise(
+    //   (resolve) =>
+    //     resolve(
+    //       setTimeout(() => {
+    //         console.log("Timeout of 2000");
+    //       })
+    //     ),
+    //   2000
+    // );
+
     const { images } = serpResponse.data;
+    console.log("Images");
+    // console.log(serpResponse.data);
 
     // Step 2: Parse sources
     const parseSources = async (images) => {
       const validateImageLink = async (url) => {
         try {
           // Make a HEAD request to check if the URL is accessible
-          const response = await axios.head(url);
+          const response = await axios.head(url, { timeout: 2000 });
           return response.status === 200;
         } catch (error) {
           return false;
