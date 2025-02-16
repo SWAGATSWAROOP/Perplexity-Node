@@ -27,116 +27,66 @@ app.post("/v2/serper", async (req, res) => {
     const serpResponse = await axios(serpApiConfig);
     console.log("Got Serper Responses: ");
 
-    // return res.status(300).json(serpResponse.data);
-
-    // await new Promise(
-    //   (resolve) =>
-    //     resolve(
-    //       setTimeout(() => {
-    //         console.log("Timeout of 2000");
-    //       })
-    //     ),
-    //   2000
-    // );
-
     const { images } = serpResponse.data;
     console.log("Images");
-    // console.log(serpResponse.data);
 
-    // Step 2: Parse sources
-    const parseSources = async (images) => {
+    const processSources = async (images) => {
       const validateImageLink = async (url) => {
         try {
-          // Make a HEAD request to check if the URL is accessible
           const response = await axios.head(url, { timeout: 2000 });
           return response.status === 200;
-        } catch (error) {
+        } catch {
           return false;
         }
       };
 
-      const sourcesParsed = await Promise.all(
-        images.map(async (item) => {
-          const isAccessible = await validateImageLink(item.imageUrl || "");
-          return isAccessible
-            ? {
-                title: item.title || "No Title",
-                link: item.link || "",
-                image: item.imageUrl || "",
-              }
-            : null; // Exclude inaccessible links
-        })
-      );
+      const fetchPageContent = async (link) => {
+        try {
+          const response = await axios.get(link, { timeout: 5000 });
+          const $ = cheerio.load(response.data);
 
-      // Filter out null values
-      return sourcesParsed.filter((source) => source !== null);
-    };
+          $("script, style, noscript, iframe, link, meta, a").remove();
 
-    const sourcesParsed = await parseSources(images);
+          const content = $("body")
+            .text()
+            .replace(/\s+/g, " ")
+            .replace(/[\[\]\(\)]+/g, "")
+            .replace(/[^\w\s.,!?-]/g, " ")
+            .trim()
+            .split(/\s+/)
+            .slice(0, 100)
+            .join(" ");
 
-    // Step 3: Fetch page content
-    const fetchPageContent = async (link) => {
-      try {
-        const response = await axios.get(link, { timeout: 5000 });
-        const $ = cheerio.load(response.data);
+          return content;
+        } catch (error) {
+          console.error(`Failed to fetch content for ${link}:`, error.message);
+          return "";
+        }
+      };
 
-        $("script, style, noscript, iframe, link, meta, a").remove();
+      // Process images: Validate image first, then fetch content only if valid
+      const processedSources = (
+        await Promise.allSettled(
+          images.map(async (item) => {
+            const isAccessible = await validateImageLink(item.imageUrl || "");
+            if (!isAccessible) return null; // Skip fetching content if image is invalid
 
-        const content = $("body")
-          .text()
-          .replace(/\s+/g, " ")
-          .replace(/[\[\]\(\)]+/g, "")
-          .replace(/[^\w\s.,!?-]/g, " ")
-          .trim()
-          .split(/\s+/)
-          .slice(0, 100)
-          .join(" ");
-
-        return { content, link };
-      } catch (error) {
-        console.error(`Failed to fetch content for ${link}:`, error.message);
-        return { content: "", link };
-      }
-    };
-
-    // Step 4: Process content
-    const processAndVectorizeContent = async (item) => {
-      const { content } = await fetchPageContent(item.link);
-      return { ...item, searchResults: content };
-    };
-
-    // Step 5: Process all sources
-    const sourcesWithContent = (
-      await Promise.allSettled(sourcesParsed.map(processAndVectorizeContent))
-    )
-      .filter(
-        (result) => result.status === "fulfilled" && result.value.searchResults
+            return {
+              title: item.title || "No Title",
+              link: item.link || "",
+              image: item.imageUrl || "",
+              searchResults: await fetchPageContent(item.link || ""),
+            };
+          })
+        )
       )
-      .map((result) => result.value)
-      .slice(0, 10);
-
-    // Step 6: Prepare messages for summarization
-    // const summarizedMap = [
-    //   {
-    //     role: "system",
-    //     content: "You are a summarizer which summarizes in 100 words.",
-    //   },
-    //   ...sourcesWithContent.map((item) => ({
-    //     role: "user",
-    //     content: item.searchResults,
-    //   })),
-    // ];
-
-    // // Step 7: Summarize content
-    // const summarizedResponses = await summarizeContent(summarizedMap);
-
-    // // Step 8: Update sources with summarized content
-    // summarizedResponses.forEach((summary, index) => {
-    //   sourcesWithContent[index].searchResults = summary.message.content;
-    // });
-
-    // Step 9: Send response
-    res.status(200).json({ sourcesWithContent });
+        .filter(
+          (result) => result.status === "fulfilled" && result.value !== null
+        )
+        .map((result) => result.value)
+        .slice(0, 10);
+      res.status(200).json({ sourcesWithContent: processedSources });
+    };
   } catch (error) {
     console.error("Error processing request:", error.message);
     res.status(500).json({
